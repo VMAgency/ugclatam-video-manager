@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UGC LATAM — Video Manager</title>
+  <meta name="description" content="30-day video content management tool for UGC LATAM. Script editor, calendar, status tracker, and export tools for Chad Smalley's video program.">
+  <meta property="og:title" content="UGC LATAM Video Manager">
+  <meta property="og:description" content="Manage monthly short-form video programs for ugclatam.io">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    /* Inline critical: splash loader */
+    #splash {
+      position: fixed; inset: 0; background: #0d0d0f;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 999; transition: opacity 0.4s ease;
+    }
+    #splash.hidden { opacity: 0; pointer-events: none; }
+    .splash-logo { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: #c8f135; letter-spacing: 0.04em; margin-bottom: 8px; }
+    .splash-sub { font-family: 'DM Sans', sans-serif; font-size: 14px; color: #555550; letter-spacing: 0.06em; }
+    .splash-bar { width: 120px; height: 2px; background: #222228; border-radius: 2px; margin-top: 24px; overflow: hidden; }
+    .splash-fill { height: 100%; background: #c8f135; border-radius: 2px; animation: load 0.8s ease forwards; }
+    @keyframes load { from { width: 0; } to { width: 100%; } }
+  </style>
+</head>
+<body>
+
+<!-- Splash -->
+<div id="splash">
+  <div class="splash-logo">UGC LATAM</div>
+  <div class="splash-sub">VIDEO MANAGER</div>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
+</div>
+
+<!-- App Shell -->
+<div class="app-shell">
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-logo">UGC LATAM <span>Video Manager</span></div>
+    <span class="topbar-badge">ugclatam.io</span>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-actions">
+      <button class="btn-export" onclick="App.exportAllScripts()">↓ Export Scripts</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <!-- Rendered by JS -->
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- Calendar -->
+    <div class="page" id="page-calendar">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- Status Tracker -->
+    <div class="page" id="page-tracker">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- Programs -->
+    <div class="page" id="page-programs">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- Hooks Library -->
+    <div class="page" id="page-hooks">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- CTA Rotation -->
+    <div class="page" id="page-ctas">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- Feature Sequence -->
+    <div class="page" id="page-features">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- GitHub Setup -->
+    <div class="page" id="page-github">
+      <!-- Rendered by JS -->
+    </div>
+
+  </main>
+</div>
+
+<!-- New Program Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="App.closeModal()">✕</button>
+    <div class="modal-title">NEW PROGRAM</div>
+    <div class="modal-sub">Create a new 30-day video content block. The current program's scripts will be used as a starting template.</div>
+    <div class="form-group">
+      <label class="form-label" for="new-prog-title">Program Title</label>
+      <input class="form-input" id="new-prog-title" type="text" placeholder="e.g. 30-Day Growth Program">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="new-prog-month">Month Label</label>
+      <input class="form-input" id="new-prog-month" type="text" placeholder="e.g. Month 2">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="new-prog-desc">Description</label>
+      <textarea class="form-textarea" id="new-prog-desc" placeholder="Brief description of this program's focus..."></textarea>
+    </div>
+    <button class="btn-modal-confirm" onclick="App.createNewProgram()">Create Program</button>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-overlay" id="export-modal" style="display:none;">
+  <div class="modal export-modal">
+    <button class="modal-close" onclick="App.closeModal()">✕</button>
+    <div class="modal-title" id="export-modal-title">EXPORT SCRIPTS</div>
+    <div class="modal-sub">Copy to clipboard or download as a .txt file for Chad's filming brief.</div>
+    <div class="export-preview" id="export-preview"></div>
+    <div class="export-actions">
+      <button class="btn-export-copy" id="btn-copy-export">Copy to Clipboard</button>
+      <button class="btn-export-dl" id="btn-download-export">↓ Download .txt</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Data & App -->
+<script src="data/programs.js"></script>
+<script src="js/app.js"></script>
+<script>
+  // Fix: make export modal work (it uses display:none initially)
+  document.getElementById('export-modal').style.display = '';
+
+  // Hide splash after load
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.getElementById('splash').classList.add('hidden');
+    }, 900);
+  });
+</script>
+
+</body>
+</html>
