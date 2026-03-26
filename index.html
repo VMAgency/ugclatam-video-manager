@@ -1,159 +1,943 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UGC LATAM — Video Manager</title>
-  <meta name="description" content="30-day video content management tool for UGC LATAM. Script editor, calendar, status tracker, and export tools for Chad Smalley's video program.">
-  <meta property="og:title" content="UGC LATAM Video Manager">
-  <meta property="og:description" content="Manage monthly short-form video programs for ugclatam.io">
-  <meta property="og:type" content="website">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css">
-  <style>
-    /* Inline critical: splash loader */
-    #splash {
-      position: fixed; inset: 0; background: #0d0d0f;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      z-index: 999; transition: opacity 0.4s ease;
-    }
-    #splash.hidden { opacity: 0; pointer-events: none; }
-    .splash-logo { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: #c8f135; letter-spacing: 0.04em; margin-bottom: 8px; }
-    .splash-sub { font-family: 'DM Sans', sans-serif; font-size: 14px; color: #555550; letter-spacing: 0.06em; }
-    .splash-bar { width: 120px; height: 2px; background: #222228; border-radius: 2px; margin-top: 24px; overflow: hidden; }
-    .splash-fill { height: 100%; background: #c8f135; border-radius: 2px; animation: load 0.8s ease forwards; }
-    @keyframes load { from { width: 0; } to { width: 100%; } }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UGC LATAM — Video Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d0f;--bg2:#141416;--bg3:#1c1c20;--bg4:#242428;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#f0efe8;--text2:#8a8980;--text3:#4a4a46;
+  --accent:#c8f135;--market:#1ece8a;--platform:#9d7dff;
+  --amber:#f5a623;--red:#ff4d4d;
+  --fd:'Bebas Neue',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
+  --r:8px;--rl:14px;--tr:0.18s cubic-bezier(.4,0,.2,1);
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+button{font-family:var(--fb);cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font-family:var(--fb);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);padding:9px 12px;font-size:13px;outline:none;width:100%}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:72px;line-height:1.6}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a8980' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+
+/* ── Shell ── */
+.shell{display:grid;grid-template-columns:210px 1fr;grid-template-rows:54px 1fr;min-height:100vh}
+
+/* ── Topbar ── */
+.topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:100}
+.logo{font-family:var(--fd);font-size:20px;color:var(--accent);letter-spacing:.04em;white-space:nowrap}
+.logo-sub{font-size:12px;color:var(--text3);font-family:var(--fb);margin-left:6px}
+.topbar-pill{font-size:10px;font-weight:600;font-family:var(--fm);padding:3px 10px;border-radius:20px;background:rgba(200,241,53,.1);color:var(--accent);border:1px solid rgba(200,241,53,.2)}
+.topbar-spacer{flex:1}
+.btn-primary{font-size:12px;font-weight:700;padding:7px 16px;border-radius:6px;background:var(--accent);color:#0d0d0f;transition:var(--tr);letter-spacing:.02em}
+.btn-primary:hover{background:#d4f748;transform:translateY(-1px)}
+
+/* ── Sidebar ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:16px 0;overflow-y:auto;position:sticky;top:54px;height:calc(100vh - 54px)}
+.nav-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);padding:14px 16px 6px}
+.nav-label:first-child{padding-top:4px}
+.nav-btn{display:flex;align-items:center;gap:9px;padding:8px 16px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:var(--tr);width:100%;text-align:left}
+.nav-btn:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-btn.active{color:var(--accent);border-left-color:var(--accent);background:rgba(200,241,53,.05)}
+.nav-icon{width:16px;text-align:center;font-size:13px}
+.nav-count{margin-left:auto;font-size:10px;font-family:var(--fm);background:var(--bg4);color:var(--text3);padding:1px 7px;border-radius:10px}
+
+/* ── Main ── */
+.main{overflow-y:auto;background:var(--bg)}
+.page{display:none;padding:28px 32px;max-width:1200px;animation:fadeUp .2s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Page header ── */
+.ph{margin-bottom:24px}
+.ph-title{font-family:var(--fd);font-size:38px;letter-spacing:.02em;line-height:1;margin-bottom:5px}
+.ph-sub{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* ── Stat cards ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px}
+.stat-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:7px}
+.stat-val{font-family:var(--fd);font-size:30px;line-height:1}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:3px}
+
+/* ── Section heading ── */
+.sh{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+
+/* ── Cards ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;transition:var(--tr)}
+.card:hover{border-color:var(--border2)}
+
+/* ── Calendar ── */
+.week-tabs{display:flex;gap:6px;margin-bottom:12px}
+.wtab{font-size:12px;font-weight:600;padding:5px 14px;border-radius:6px;border:1px solid var(--border);color:var(--text2);transition:var(--tr)}
+.wtab:hover{border-color:var(--border2);color:var(--text)}
+.wtab.active{background:var(--accent);color:#0d0d0f;border-color:var(--accent)}
+.day-headers{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+.day-hdr{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);text-align:center;padding:4px 0}
+.cal-week{display:none;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-week.active{display:grid}
+.day{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:9px;min-height:115px;position:relative;transition:var(--tr)}
+.day.vid{cursor:pointer}
+.day.vid:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.day.vid.market{border-top:2px solid var(--market)}
+.day.vid.platform{border-top:2px solid var(--platform)}
+.day.rest{opacity:.4}
+.day.sel{border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent)}
+.d-name{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+.d-num{font-family:var(--fm);font-size:16px;color:var(--text3);margin-bottom:6px}
+.d-tag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:8px;margin-bottom:5px}
+.d-tag.market{background:rgba(30,206,138,.15);color:var(--market)}
+.d-tag.platform{background:rgba(157,125,255,.15);color:var(--platform)}
+.d-title{font-size:11px;font-weight:500;line-height:1.35;color:var(--text)}
+.d-time{font-size:9px;font-family:var(--fm);color:var(--text3);margin-top:5px}
+.d-dot{position:absolute;bottom:7px;right:7px;width:7px;height:7px;border-radius:50%}
+.d-dot.Scripted{background:var(--text3)}
+.d-dot.Filmed{background:var(--amber)}
+.d-dot.Edited{background:var(--platform)}
+.d-dot.Posted{background:var(--market)}
+.hint{font-size:9px;color:var(--text3);margin-top:4px;font-style:italic}
+
+/* ── Script panel ── */
+.spanel{display:none;border:1px solid var(--border2);border-radius:var(--rl);margin-top:14px;overflow:hidden;animation:fadeUp .2s ease}
+.spanel.open{display:block}
+.sp-head{display:flex;align-items:flex-start;gap:14px;padding:18px 20px;border-bottom:1px solid var(--border)}
+.sp-head-l{flex:1}
+.sp-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:10px;margin-bottom:8px}
+.sp-badge.market{background:rgba(30,206,138,.15);color:var(--market)}
+.sp-badge.platform{background:rgba(157,125,255,.15);color:var(--platform)}
+.sp-title{font-family:var(--fd);font-size:22px;letter-spacing:.02em;line-height:1.2;margin-bottom:6px}
+.sp-meta{font-size:11px;color:var(--text2);font-family:var(--fm);display:flex;gap:14px;flex-wrap:wrap}
+.sp-head-r{display:flex;flex-direction:column;gap:8px;align-items:flex-end;flex-shrink:0}
+.status-sel{font-family:var(--fm);font-size:11px;font-weight:600;padding:6px 28px 6px 10px;border-radius:6px;width:auto}
+.status-sel.Scripted{border-color:var(--text3);color:var(--text2)}
+.status-sel.Filmed{border-color:var(--amber);color:var(--amber)}
+.status-sel.Edited{border-color:var(--platform);color:var(--platform)}
+.status-sel.Posted{border-color:var(--market);color:var(--market)}
+.btn-close{font-size:12px;color:var(--text3);padding:4px 9px;border-radius:5px;border:1px solid var(--border)}
+.btn-close:hover{color:var(--text);background:var(--bg4)}
+.sp-body{padding:16px 20px;display:grid;gap:12px}
+.sblock{border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+.sblock-hdr{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--border)}
+.sblock-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em}
+.sblock-sub{font-size:11px;color:var(--text3);font-family:var(--fm)}
+.sblock.hook{background:rgba(245,166,35,.05);border-color:rgba(245,166,35,.18)}
+.sblock.hook .sblock-lbl{color:var(--amber)}
+.sblock.body{background:var(--bg3)}
+.sblock.body .sblock-lbl{color:var(--text2)}
+.sblock.cta{background:rgba(157,125,255,.05);border-color:rgba(157,125,255,.18)}
+.sblock.cta .sblock-lbl{color:var(--platform)}
+.sblock.prod{background:rgba(200,241,53,.04);border-color:rgba(200,241,53,.12)}
+.sblock.prod .sblock-lbl{color:var(--accent)}
+.sblock textarea{border:none;border-radius:0;background:transparent;padding:11px 13px;font-size:13px;line-height:1.65;color:var(--text)}
+.sblock textarea:focus{border:none;background:rgba(255,255,255,.02)}
+.prod-txt{padding:11px 13px;font-size:12px;color:var(--text2);line-height:1.6;font-family:var(--fm)}
+.tags{display:flex;gap:5px;flex-wrap:wrap;padding:10px 13px 12px}
+.tag{font-size:10px;padding:2px 8px;border-radius:8px;border:1px solid var(--border);color:var(--text3);font-family:var(--fm)}
+.sp-foot{padding:13px 20px;border-top:1px solid var(--border);display:flex;gap:9px;align-items:center}
+.btn-save{font-size:13px;font-weight:700;padding:8px 18px;border-radius:6px;background:var(--accent);color:#0d0d0f;transition:var(--tr)}
+.btn-save:hover{background:#d4f748}
+.btn-save.ok{background:var(--market);color:#fff}
+.btn-exp{font-size:13px;font-weight:500;padding:8px 14px;border-radius:6px;border:1px solid var(--border2);color:var(--text2);transition:var(--tr)}
+.btn-exp:hover{color:var(--text);background:var(--bg3)}
+.save-hint{font-size:11px;color:var(--text3);font-family:var(--fm);margin-left:auto}
+
+/* ── Kanban ── */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kcol{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.kcol-hdr{display:flex;align-items:center;gap:8px;padding:11px 13px;border-bottom:1px solid var(--border)}
+.kcol-dot{width:8px;height:8px;border-radius:50%}
+.kcol-dot.Scripted{background:var(--text3)}
+.kcol-dot.Filmed{background:var(--amber)}
+.kcol-dot.Edited{background:var(--platform)}
+.kcol-dot.Posted{background:var(--market)}
+.kcol-name{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.kcol-count{font-size:10px;font-family:var(--fm);background:var(--bg4);color:var(--text3);padding:1px 7px;border-radius:8px;margin-left:auto}
+.kcol-body{padding:9px;display:grid;gap:7px;min-height:80px}
+.kcard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 11px;cursor:pointer;transition:var(--tr)}
+.kcard:hover{border-color:var(--border2);transform:translateY(-1px)}
+.kcard-week{font-size:10px;color:var(--text3);font-family:var(--fm);margin-bottom:3px}
+.kcard-title{font-size:12px;font-weight:500;line-height:1.4}
+.kcard-tag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;padding:1px 6px;border-radius:5px;margin-top:5px}
+.kcard-tag.market{background:rgba(30,206,138,.15);color:var(--market)}
+.kcard-tag.platform{background:rgba(157,125,255,.15);color:var(--platform)}
+.empty-col{padding:12px;font-size:12px;color:var(--text3);text-align:center}
+
+/* ── Hooks grid ── */
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:11px}
+.hcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px;transition:var(--tr)}
+.hcard:hover{border-color:var(--border2)}
+.hcard-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-family:var(--fm);margin-bottom:9px}
+.hcard-hook{font-size:13px;font-weight:500;line-height:1.5;font-style:italic;margin-bottom:9px}
+.hcard-note{font-size:12px;color:var(--text2);line-height:1.5}
+.hcard-use{font-size:10px;font-family:var(--fm);color:var(--text3);margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+
+/* ── CTA table ── */
+.ctbl{width:100%;border-collapse:collapse}
+.ctbl th{text-align:left;padding:9px 13px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--text3);border-bottom:1px solid var(--border)}
+.ctbl td{padding:13px;border-bottom:1px solid var(--border);font-size:13px;line-height:1.55;vertical-align:top}
+.ctbl tr:last-child td{border-bottom:none}
+.ctbl tr:hover td{background:var(--bg3)}
+.cbadge{display:inline-block;font-size:10px;font-weight:700;font-family:var(--fm);padding:2px 8px;border-radius:6px;text-transform:uppercase}
+.cbadge.p{background:var(--accent);color:#0d0d0f}
+.cbadge.s{background:var(--bg4);color:var(--text2);border:1px solid var(--border2)}
+.cscript{font-family:var(--fm);font-size:12px;color:var(--text);background:var(--bg3);padding:9px 11px;border-radius:6px;border-left:2px solid var(--border2);margin-top:4px}
+
+/* ── Feature list ── */
+.flist{display:grid;gap:9px}
+.frow{display:grid;grid-template-columns:42px 1fr auto;align-items:start;gap:14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px 18px;transition:var(--tr)}
+.frow:hover{border-color:var(--border2)}
+.fnum{width:42px;height:42px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:20px;color:var(--text2);flex-shrink:0}
+.fname{font-size:14px;font-weight:600;margin-bottom:4px}
+.fdesc{font-size:12px;color:var(--text2);line-height:1.5}
+.fwk{font-size:11px;font-family:var(--fm);font-weight:600;padding:4px 10px;border-radius:6px;background:rgba(157,125,255,.12);color:var(--platform);white-space:nowrap;flex-shrink:0;margin-top:2px}
+
+/* ── Programs ── */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:16px}
+.pcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px;transition:var(--tr);cursor:pointer}
+.pcard:hover{border-color:var(--border2);transform:translateY(-2px)}
+.pcard.cur{border-color:var(--market)}
+.pcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.pmonth{font-family:var(--fd);font-size:26px}
+.pstatus{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:3px 9px;border-radius:10px}
+.pstatus.active{background:rgba(30,206,138,.15);color:var(--market)}
+.pstatus.draft{background:var(--bg4);color:var(--text3)}
+.ptitle{font-size:14px;font-weight:600;margin-bottom:4px}
+.pdesc{font-size:12px;color:var(--text2);line-height:1.45;margin-bottom:12px}
+.pbar-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-family:var(--fm);margin-bottom:5px}
+.pbar-bg{background:var(--bg4);border-radius:3px;height:3px}
+.pbar-fill{height:3px;border-radius:3px;background:var(--accent);transition:width .5s ease}
+.pmeta{display:flex;gap:12px;font-size:11px;color:var(--text3);font-family:var(--fm);margin-top:10px}
+.btn-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:transparent;border:1px dashed var(--border2);border-radius:var(--rl);color:var(--text3);font-size:13px;font-weight:500;transition:var(--tr);cursor:pointer}
+.btn-add:hover{border-color:var(--accent);color:var(--accent);background:rgba(200,241,53,.04)}
+
+/* ── Progress bar ── */
+.prog-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:16px}
+.prog-row{display:flex;justify-content:space-between;margin-bottom:9px;font-size:13px;color:var(--text2)}
+.prog-row span:last-child{font-family:var(--fm);color:var(--accent)}
+.prog-bg{background:var(--bg4);border-radius:4px;height:5px}
+.prog-fill{height:5px;border-radius:4px;background:var(--accent);transition:width .6s ease}
+.prog-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;text-align:center}
+.prog-num{font-family:var(--fd);font-size:26px}
+.prog-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+
+/* ── Export / Modal ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:24px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;position:relative}
+.modal-title{font-family:var(--fd);font-size:26px;margin-bottom:5px}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.5}
+.modal-close{position:absolute;top:14px;right:14px;font-size:13px;color:var(--text3);padding:5px 9px;border-radius:5px;border:1px solid var(--border)}
+.modal-close:hover{color:var(--text);background:var(--bg4)}
+.flbl{display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.fgrp{margin-bottom:14px}
+.btn-confirm{width:100%;padding:11px;border-radius:6px;background:var(--accent);color:#0d0d0f;font-size:14px;font-weight:700;margin-top:6px;transition:var(--tr)}
+.btn-confirm:hover{background:#d4f748}
+.exp-pre{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;font-family:var(--fm);font-size:11px;line-height:1.8;color:var(--text2);max-height:340px;overflow-y:auto;white-space:pre-wrap;margin-bottom:14px}
+.exp-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.btn-copy{padding:10px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--border2);color:var(--text2);transition:var(--tr)}
+.btn-copy:hover{border-color:var(--accent);color:var(--accent)}
+.btn-dl{padding:10px;border-radius:6px;font-size:13px;font-weight:700;background:var(--accent);color:#0d0d0f;transition:var(--tr)}
+.btn-dl:hover{background:#d4f748}
+
+/* ── GitHub setup ── */
+.ghsteps{display:grid;gap:14px;margin-top:16px}
+.ghstep{display:grid;grid-template-columns:34px 1fr;gap:13px;align-items:start}
+.ghnum{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:20px;color:var(--accent);flex-shrink:0}
+.ghtitle{font-size:14px;font-weight:600;margin-bottom:4px}
+.ghdesc{font-size:13px;color:var(--text2);line-height:1.55}
+.ghcode{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:9px 13px;font-family:var(--fm);font-size:12px;color:var(--market);margin-top:7px;line-height:1.7}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:11px 16px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.4);transform:translateY(60px);opacity:0;transition:all .28s cubic-bezier(.4,0,.2,1);z-index:300}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-color:var(--market)}
+
+/* ── Info box ── */
+.info{background:rgba(200,241,53,.05);border:1px solid rgba(200,241,53,.15);border-radius:var(--r);padding:12px 15px;font-size:12px;color:var(--text2);line-height:1.6;margin-top:12px}
+.info strong{color:var(--accent)}
+
+/* ── Two col ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.split-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px}
+
+@media(max-width:860px){
+  .shell{grid-template-columns:1fr;grid-template-rows:54px auto 1fr}
+  .sidebar{position:static;height:auto;display:flex;flex-wrap:wrap;gap:4px;padding:10px;border-right:none;border-bottom:1px solid var(--border)}
+  .nav-label{display:none}
+  .nav-btn{border-left:none;border-radius:6px;padding:7px 11px;border-bottom:2px solid transparent}
+  .nav-btn.active{border-bottom-color:var(--accent)}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .kanban{grid-template-columns:repeat(2,1fr)}
+  .two-col{grid-template-columns:1fr}
+  .page{padding:16px}
+}
+</style>
 </head>
 <body>
+<div class="shell">
 
-<!-- Splash -->
-<div id="splash">
-  <div class="splash-logo">UGC LATAM</div>
-  <div class="splash-sub">VIDEO MANAGER</div>
-  <div class="splash-bar"><div class="splash-fill"></div></div>
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">UGC LATAM <span class="logo-sub">Video Manager</span></div>
+  <span class="topbar-pill">ugclatam.io</span>
+  <div class="topbar-spacer"></div>
+  <button class="btn-primary" onclick="exportAll()">↓ Export Scripts</button>
+</header>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="nav-label">Main</div>
+  <button class="nav-btn active" data-page="dashboard" onclick="go('dashboard',this)"><span class="nav-icon">▦</span>Dashboard</button>
+  <button class="nav-btn" data-page="calendar" onclick="go('calendar',this)"><span class="nav-icon">◫</span>Calendar<span class="nav-count" id="nc-cal">14</span></button>
+  <button class="nav-btn" data-page="tracker" onclick="go('tracker',this)"><span class="nav-icon">◈</span>Status Tracker</button>
+  <div class="nav-label">Content</div>
+  <button class="nav-btn" data-page="programs" onclick="go('programs',this)"><span class="nav-icon">⊞</span>Programs<span class="nav-count" id="nc-prog">1</span></button>
+  <button class="nav-btn" data-page="hooks" onclick="go('hooks',this)"><span class="nav-icon">⚡</span>Hooks Library</button>
+  <button class="nav-btn" data-page="ctas" onclick="go('ctas',this)"><span class="nav-icon">◎</span>CTA Rotation</button>
+  <button class="nav-btn" data-page="features" onclick="go('features',this)"><span class="nav-icon">◑</span>Feature Sequence</button>
+  <div class="nav-label">Setup</div>
+  <button class="nav-btn" data-page="github" onclick="go('github',this)"><span class="nav-icon">◌</span>GitHub Pages</button>
+</nav>
+
+<!-- PAGES -->
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard"></div>
+
+  <!-- CALENDAR -->
+  <div class="page" id="page-calendar"></div>
+
+  <!-- TRACKER -->
+  <div class="page" id="page-tracker"></div>
+
+  <!-- PROGRAMS -->
+  <div class="page" id="page-programs"></div>
+
+  <!-- HOOKS -->
+  <div class="page" id="page-hooks"></div>
+
+  <!-- CTAS -->
+  <div class="page" id="page-ctas"></div>
+
+  <!-- FEATURES -->
+  <div class="page" id="page-features"></div>
+
+  <!-- GITHUB -->
+  <div class="page" id="page-github"></div>
+
+</main>
 </div>
 
-<!-- App Shell -->
-<div class="app-shell">
-
-  <!-- Top Bar -->
-  <header class="topbar">
-    <div class="topbar-logo">UGC LATAM <span>Video Manager</span></div>
-    <span class="topbar-badge">ugclatam.io</span>
-    <div class="topbar-spacer"></div>
-    <div class="topbar-actions">
-      <button class="btn-export" onclick="App.exportAllScripts()">↓ Export Scripts</button>
-    </div>
-  </header>
-
-  <!-- Sidebar -->
-  <nav class="sidebar" id="sidebar">
-    <!-- Rendered by JS -->
-  </nav>
-
-  <!-- Main Content -->
-  <main class="main">
-
-    <!-- Dashboard -->
-    <div class="page active" id="page-dashboard">
-      <!-- Rendered by JS -->
-    </div>
-
-    <!-- Calendar -->
-    <div class="page" id="page-calendar">
-      <!-- Rendered by JS -->
-    </div>
-
-    <!-- Status Tracker -->
-    <div class="page" id="page-tracker">
-      <!-- Rendered by JS -->
-    </div>
-
-    <!-- Programs -->
-    <div class="page" id="page-programs">
-      <!-- Rendered by JS -->
-    </div>
-
-    <!-- Hooks Library -->
-    <div class="page" id="page-hooks">
-      <!-- Rendered by JS -->
-    </div>
-
-    <!-- CTA Rotation -->
-    <div class="page" id="page-ctas">
-      <!-- Rendered by JS -->
-    </div>
-
-    <!-- Feature Sequence -->
-    <div class="page" id="page-features">
-      <!-- Rendered by JS -->
-    </div>
-
-    <!-- GitHub Setup -->
-    <div class="page" id="page-github">
-      <!-- Rendered by JS -->
-    </div>
-
-  </main>
-</div>
-
-<!-- New Program Modal -->
-<div class="modal-overlay" id="modal-overlay">
+<!-- NEW PROGRAM MODAL -->
+<div class="overlay" id="prog-modal">
   <div class="modal">
-    <button class="modal-close" onclick="App.closeModal()">✕</button>
+    <button class="modal-close" onclick="closeModal('prog-modal')">✕</button>
     <div class="modal-title">NEW PROGRAM</div>
-    <div class="modal-sub">Create a new 30-day video content block. The current program's scripts will be used as a starting template.</div>
-    <div class="form-group">
-      <label class="form-label" for="new-prog-title">Program Title</label>
-      <input class="form-input" id="new-prog-title" type="text" placeholder="e.g. 30-Day Growth Program">
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="new-prog-month">Month Label</label>
-      <input class="form-input" id="new-prog-month" type="text" placeholder="e.g. Month 2">
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="new-prog-desc">Description</label>
-      <textarea class="form-textarea" id="new-prog-desc" placeholder="Brief description of this program's focus..."></textarea>
-    </div>
-    <button class="btn-modal-confirm" onclick="App.createNewProgram()">Create Program</button>
+    <div class="modal-sub">Creates a new 30-day block using the current program as a script template.</div>
+    <div class="fgrp"><label class="flbl">Program Title</label><input id="np-title" placeholder="e.g. 30-Day Growth Sprint"></div>
+    <div class="fgrp"><label class="flbl">Month Label</label><input id="np-month" placeholder="e.g. Month 2"></div>
+    <div class="fgrp"><label class="flbl">Focus / Description</label><textarea id="np-desc" placeholder="What's the strategic focus of this month?"></textarea></div>
+    <button class="btn-confirm" onclick="createProgram()">Create Program</button>
   </div>
 </div>
 
-<!-- Export Modal -->
-<div class="modal-overlay" id="export-modal" style="display:none;">
-  <div class="modal export-modal">
-    <button class="modal-close" onclick="App.closeModal()">✕</button>
-    <div class="modal-title" id="export-modal-title">EXPORT SCRIPTS</div>
-    <div class="modal-sub">Copy to clipboard or download as a .txt file for Chad's filming brief.</div>
-    <div class="export-preview" id="export-preview"></div>
-    <div class="export-actions">
-      <button class="btn-export-copy" id="btn-copy-export">Copy to Clipboard</button>
-      <button class="btn-export-dl" id="btn-download-export">↓ Download .txt</button>
+<!-- EXPORT MODAL -->
+<div class="overlay" id="exp-modal">
+  <div class="modal" style="max-width:600px">
+    <button class="modal-close" onclick="closeModal('exp-modal')">✕</button>
+    <div class="modal-title" id="exp-title">EXPORT</div>
+    <div class="modal-sub">Copy to clipboard or download as a .txt filming brief for Chad.</div>
+    <div class="exp-pre" id="exp-pre"></div>
+    <div class="exp-actions">
+      <button class="btn-copy" id="btn-copy">Copy to Clipboard</button>
+      <button class="btn-dl" id="btn-dl">↓ Download .txt</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
+<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- Data & App -->
-<script src="data/programs.js"></script>
-<script src="js/app.js"></script>
 <script>
-  // Fix: make export modal work (it uses display:none initially)
-  document.getElementById('export-modal').style.display = '';
+// ═══════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════
+const BRAND = { name:'UGC LATAM', url:'ugclatam.io', host:'Chad Smalley', title:'CEO' };
+const STATUSES = ['Scripted','Filmed','Edited','Posted'];
 
-  // Hide splash after load
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      document.getElementById('splash').classList.add('hidden');
-    }, 900);
-  });
+const BASE_VIDEOS = [
+  {id:'v01',day:2,weekday:'Mon',week:1,type:'market',title:"LATAM Social Commerce: The $1T Opportunity Nobody's Talking About",dur:'30–40 sec',time:'9am EST',status:'Scripted',hookType:'Stat Shock',ctaType:'Type C — Curiosity',
+   hook:"LATAM's social commerce market is projected to hit $100 billion by 2026. And right now, 90% of global brands have zero presence. That's not a problem — that's your opportunity.",
+   body:"Social commerce in LATAM is growing 3x faster than North America. Mexico, Brazil, and Colombia are leading. Consumers here don't just scroll — they buy directly from the creator they trust. The brands moving now are going to own these markets. The ones waiting are going to pay to catch up.",
+   cta:"I'm breaking down this market all month. Follow so you don't miss it. And if you're ready to move now — link in bio.",
+   prod:"Open on Chad, tight frame. Cut to motion graphic: '$100B Social Commerce' stat at 5sec. Close on Chad for CTA.",
+   broll:['Motion graphic: $100B stat','LATAM lifestyle B-roll'],tags:['Social Commerce','LATAM Market','Mexico','Brazil','Colombia']},
+
+  {id:'v02',day:4,weekday:'Wed',week:1,type:'platform',title:"Finding LATAM Creators Is Broken — Here's How We Fixed It",dur:'40–50 sec',time:'9am EST',status:'Scripted',hookType:'Problem First',ctaType:'Type A — Direct',
+   hook:"Finding a real, vetted LATAM creator for your brand used to take weeks of spreadsheets, DMs, and dead ends. We rebuilt the entire process from scratch.",
+   body:"On the UGC LATAM marketplace, brands post a campaign brief in under 5 minutes. Our AI immediately surfaces pre-vetted creators filtered by country, niche, audience demographics, and engagement quality — not just follower count. You're not browsing a database. You're getting a shortlist of the right people.",
+   cta:"I'll show you the platform live. Book a demo at ugclatam.io — takes 20 minutes.",
+   prod:"Chad opens talking head. At 10sec, cut to dashboard screen recording: brief submission → creator results populating. Return to Chad for CTA.",
+   broll:['Dashboard: brief submission','Dashboard: creator results'],tags:['Creator Marketplace','AI Matching','Feature Demo']},
+
+  {id:'v03',day:5,weekday:'Thu',week:1,type:'market',title:"Why Mexico Is the Fastest-Growing Influencer Market in the World",dur:'25–35 sec',time:'12pm EST',status:'Scripted',hookType:'Stat Shock',ctaType:'Type B — DM',
+   hook:"Mexico added 12 million new social media users last year. It's the fastest-growing influencer market on the planet. And most brands are still treating it like an afterthought.",
+   body:"TikTok in Mexico has 60M+ monthly users. Creator trust scores here beat the US average. The cost per engagement is a fraction of North America. This market rewards brands who move with local creators — not brands who translate their US strategy and hope for the best.",
+   cta:"DM me the word MEXICO and I'll send you our Mexico market breakdown — free.",
+   prod:"Fast-paced. Chad on camera, B-roll of Mexico City lifestyle content cuts at 8sec. Motion graphic: '60M+ TikTok Users' stat. End on Chad.",
+   broll:['Mexico City lifestyle B-roll','Motion graphic: 60M+ users'],tags:['Mexico','Market Spotlight','TikTok']},
+
+  {id:'v04',day:6,weekday:'Fri',week:1,type:'platform',title:"AI Matching: How We Connect Brands to the Right Creator in Minutes",dur:'40–55 sec',time:'9am EST',status:'Scripted',hookType:'Contrarian Take',ctaType:'Type A — Direct',
+   hook:"Most platforms match you to creators by follower count. We think that's completely backwards — and our data proves it.",
+   body:"Our AI scores creators on seven variables: audience authenticity, engagement rate, content-brand alignment, past campaign performance, audience demographics, brand safety history, and geographic reach. The result? Matches that actually convert. Not matches that just look impressive on a report.",
+   cta:"Book a demo at ugclatam.io. I'll pull up your brand in the system live.",
+   prod:"Open on Chad. Dashboard screen recording at 12sec — show the 7 matching criteria UI. Animate through a live match result. Return to Chad for CTA.",
+   broll:['Dashboard: 7-criteria matching UI','Dashboard: live match result'],tags:['AI Matching','Platform Feature','Campaign ROI']},
+
+  {id:'v05',day:9,weekday:'Mon',week:2,type:'market',title:"Brazil's Creator Economy Is Bigger Than You Think",dur:'30–40 sec',time:'9am EST',status:'Scripted',hookType:'Stat Shock',ctaType:'Type D — Follow',
+   hook:"Brazil has the 4th largest creator economy in the world. More creators per capita than Germany, France, or Japan. And brands are still treating it as a secondary market.",
+   body:"Brazilian creators are among the most engaged in the world. YouTube, TikTok, Instagram — Brazil ranks top 5 on every platform. The brands winning here partner with local creators who understand the culture, the language, the humor. You can't translate your campaign. You have to localize it.",
+   cta:"Follow for more — next week I'm breaking down Colombia's micro-influencer advantage.",
+   prod:"B-roll of Brazil lifestyle content (São Paulo, Rio). Chad voiceover. Motion graphic: '4th Largest Creator Economy.' End with Chad on camera for CTA.",
+   broll:['São Paulo lifestyle B-roll','Rio lifestyle B-roll'],tags:['Brazil','Creator Economy','Market Spotlight']},
+
+  {id:'v06',day:11,weekday:'Wed',week:2,type:'platform',title:"Cross-Border Payments Are Killing LATAM Campaigns — We Solved It",dur:'35–45 sec',time:'9am EST',status:'Scripted',hookType:'Problem First',ctaType:'Type A — Direct',
+   hook:"You found the perfect Colombian creator. Campaign's ready. Then finance asks: how do we pay them? And the whole thing falls apart.",
+   body:"Paying creators across LATAM is a mess. Wire fees, FX rates, local banking requirements, tax compliance — it's a full-time job. UGC LATAM automates all of it. Local currency payouts in Mexico, Brazil, Colombia, Argentina. Contracts auto-generated in Spanish and Portuguese. Invoicing handled end to end. Your team never touches a spreadsheet.",
+   cta:"See it in action — book a demo at ugclatam.io.",
+   prod:"Chad opens with the problem. Dashboard screen recording at 10sec: payment flow, currency selector, contract generation. End on Chad for direct CTA.",
+   broll:['Dashboard: payment flow','Dashboard: currency selector'],tags:['Cross-Border Payments','Contracts','Platform Feature']},
+
+  {id:'v07',day:12,weekday:'Thu',week:2,type:'market',title:"Colombia's Micro-Influencer Advantage: Higher Trust, Lower Cost",dur:'25–35 sec',time:'12pm EST',status:'Scripted',hookType:'Curiosity Gap',ctaType:'Type B — DM',
+   hook:"Colombian micro-influencers — 10K to 100K followers — are outperforming macro influencers by 3x on engagement. And they cost 80% less.",
+   body:"In Colombia, trust is everything. Audiences here follow creators who feel real, local, and authentic. A micro-influencer in Medellín talking about your product hits differently than a celebrity posting a sponsored ad. The data backs it up — and smart brands are already moving.",
+   cta:"DM me COLOMBIA for our creator tier breakdown by country.",
+   prod:"Fast-cut, energetic. B-roll of Medellín/Bogotá creator content. Chad voiceover. End on Chad in frame for CTA.",
+   broll:['Medellín lifestyle B-roll','Bogotá creator content'],tags:['Colombia','Micro-Influencer','Engagement Rate']},
+
+  {id:'v08',day:13,weekday:'Fri',week:2,type:'platform',title:"How We Handle Creator Gifting Across 18+ Countries with One Click",dur:'40–50 sec',time:'9am EST',status:'Scripted',hookType:'Speed Claim',ctaType:'Type A — Direct',
+   hook:"Shipping product to 50 creators across Latin America sounds like a logistics nightmare. We turned it into a single dashboard click.",
+   body:"Creator gifting and product seeding is one of the highest-ROI tactics in influencer marketing. But the operations — customs, local fulfillment, tracking — kill most brands before they start. UGC LATAM's gifting module connects to local 3PL partners across 18+ LATAM countries. You approve the creator list, we handle the rest.",
+   cta:"Book a demo — I'll walk you through the gifting flow live at ugclatam.io.",
+   prod:"Chad talks the problem. At 12sec, screen recording of gifting dashboard: creator list → product selection → fulfillment status map.",
+   broll:['Dashboard: gifting creator list','Dashboard: fulfillment map'],tags:['Creator Gifting','Product Seeding','Platform Feature']},
+
+  {id:'v09',day:16,weekday:'Mon',week:3,type:'market',title:"The Trust Problem: Why LATAM Audiences Follow Creators, Not Brands",dur:'30–40 sec',time:'9am EST',status:'Scripted',hookType:'Stat Shock',ctaType:'Type C — Curiosity',
+   hook:"In LATAM, 71% of consumers trust a creator recommendation more than a brand ad. That number should change how you think about every dollar you spend here.",
+   body:"Latin American audiences have some of the highest creator loyalty rates in the world. When a creator they follow recommends something, they act. When a brand runs an ad, they scroll. The brands winning in LATAM have understood this for years — they're not advertising, they're building creator partnerships that feel organic, local, and real.",
+   cta:"I'm showing exactly how to build that strategy inside ugclatam.io — link in bio.",
+   prod:"Chad, direct eye contact, slower pace for authority. Motion graphic at 8sec: '71% Trust Stat.' B-roll: creator-to-audience connection content.",
+   broll:['Motion graphic: 71% trust stat','Creator-audience B-roll'],tags:['Consumer Trust','LATAM Behavior','Brand Strategy']},
+
+  {id:'v10',day:18,weekday:'Wed',week:3,type:'platform',title:"The UGC LATAM Dashboard: Manage 50 Creators as Easily as One",dur:'45–55 sec',time:'9am EST',status:'Scripted',hookType:'Problem First',ctaType:'Type A — Direct',
+   hook:"Managing 50 LATAM creators across 8 countries used to mean 50 spreadsheets, 50 email threads, and one very tired marketing manager. Not anymore.",
+   body:"The UGC LATAM campaign dashboard gives brand managers one view across every creator, every market, every piece of content. Deliverable tracking, approval workflows, content performance, payment status — all in one place. You can scale from 5 creators to 500 without adding headcount.",
+   cta:"Book a demo and I'll pull up a live campaign dashboard at ugclatam.io.",
+   prod:"Chad intro (10sec). Extended screen recording: campaign overview → creator status → performance analytics → approval queue. Let the dashboard do the selling.",
+   broll:['Dashboard: campaign overview','Dashboard: analytics','Dashboard: approval queue'],tags:['Campaign Dashboard','Creator Management','Analytics']},
+
+  {id:'v11',day:19,weekday:'Thu',week:3,type:'market',title:"Argentina, Chile & Peru: The Underserved Markets with Massive ROI",dur:'30–40 sec',time:'12pm EST',status:'Scripted',hookType:'Contrarian Take',ctaType:'Type B — DM',
+   hook:"Every brand is rushing to Mexico and Brazil. Meanwhile Argentina, Chile, and Peru are sitting there with educated, high-income audiences and almost no competition.",
+   body:"Argentina has one of the highest smartphone penetration rates in South America. Chile has the highest per-capita e-commerce spend in LATAM. Peru's creator economy is growing 40% year-over-year. These are not emerging markets — they're overlooked markets. First-mover brands here are going to dominate.",
+   cta:"DM me SOUTH for our Argentina/Chile/Peru creator data sheet.",
+   prod:"Motion graphics: market stats for each country appear sequentially. Chad voiceover. B-roll: Santiago, Buenos Aires, Lima. End on Chad for CTA.",
+   broll:['Santiago B-roll','Buenos Aires B-roll','Lima B-roll'],tags:['Argentina','Chile','Peru','Market Opportunity']},
+
+  {id:'v12',day:20,weekday:'Fri',week:3,type:'platform',title:"Brand Safety in LATAM: How Our AI Protects You at Scale",dur:'35–45 sec',time:'9am EST',status:'Scripted',hookType:'Problem First',ctaType:'Type A — Direct',
+   hook:"One wrong creator partnership and your brand is in the LATAM headlines for the wrong reasons. Brand safety at scale is a real problem — here's how we solve it.",
+   body:"UGC LATAM's AI brand safety engine scans a creator's full content history — posts, comments, affiliations — before they're ever surfaced to a brand. It flags potential risks, assigns a safety score, and provides a report your legal team can use. For enterprise brands running campaigns across 20 creators in 6 countries, this isn't optional. It's essential.",
+   cta:"See the brand safety report in action — book a demo at ugclatam.io.",
+   prod:"Chad talks the risk. Dashboard screen recording at 12sec: creator safety score UI, risk flags, compliance report export. End on Chad for direct CTA.",
+   broll:['Dashboard: safety score UI','Dashboard: risk flags'],tags:['Brand Safety','AI Compliance','Enterprise']},
+
+  {id:'v13',day:23,weekday:'Mon',week:4,type:'market',title:"DTA in LATAM: How Brands Are Skipping the Middleman",dur:'30–40 sec',time:'9am EST',status:'Scripted',hookType:"Chad's POV",ctaType:'Type D — Follow',
+   hook:"Direct-to-audience marketing is reshaping how brands grow in LATAM. The brands doing it right are building communities, not audiences. There's a big difference.",
+   body:"DTA means going straight to the consumer through creators they already trust — no distributors, no retail intermediary, no ad network taking 40% of your budget. In LATAM, where algorithms reward authentic content and creator-led commerce is exploding, DTA is the highest-leverage strategy available right now. The window to get in early is closing.",
+   cta:"Follow for the full platform demo drop this week — I'm showing it all.",
+   prod:"Chad, higher energy. Motion graphic: DTA funnel vs traditional ad funnel. B-roll: creator content → consumer purchase. End on Chad.",
+   broll:['Motion graphic: DTA funnel','Creator-to-consumer B-roll'],tags:['DTA','Direct to Audience','Social Commerce']},
+
+  {id:'v14',day:25,weekday:'Wed',week:4,type:'platform',title:"Full Platform Walkthrough: From Brand Brief to Live Campaign in 48 Hours",dur:'55–60 sec',time:'9am EST',status:'Scripted',hookType:'Speed Claim',ctaType:'Type A — Direct',
+   hook:"Most brands spend 6 weeks building a LATAM influencer campaign. On UGC LATAM, it takes 48 hours. Here's the entire process — live.",
+   body:"Watch the complete end-to-end flow: brand brief submission → AI creator match → contract generation → gifting fulfillment trigger → campaign goes live → real-time analytics dashboard populates. This is the full journey. 48 hours, one platform, zero spreadsheets.",
+   cta:"Ready to launch your first LATAM campaign? Book a demo at ugclatam.io. I'll personally walk you through it.",
+   prod:"Chad intro (5sec). Extended screen recording walkthrough — the full 6-step flow (45sec). Return to Chad for personal, direct CTA (10sec). This is the hero video of the month.",
+   broll:['Dashboard: full 6-step flow walkthrough'],tags:['Full Demo','Platform Walkthrough','Conversion']}
+];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let state = { programs:[], activeId:null, openVideo:null, activeWeek:1, currentPage:'dashboard' };
+
+function loadState(){
+  try {
+    const s = localStorage.getItem('ugcl_v2');
+    if(s){ const p=JSON.parse(s); state.programs=p.programs; state.activeId=p.activeId; }
+    else { initDefaultProgram(); }
+  } catch(e){ initDefaultProgram(); }
+}
+
+function initDefaultProgram(){
+  const prog = {
+    id:'prog_001', title:'30-Day Launch Program', month:'Month 1',
+    status:'active', desc:'Foundation program: 50% LATAM market education, 50% platform features. Goal: book demo calls.',
+    platforms:['TikTok','Instagram Reels','LinkedIn','YouTube Shorts','Substack'],
+    startDate:'2024-04-01',
+    videos: JSON.parse(JSON.stringify(BASE_VIDEOS))
+  };
+  state.programs = [prog];
+  state.activeId = prog.id;
+}
+
+function save(){ localStorage.setItem('ugcl_v2', JSON.stringify({programs:state.programs,activeId:state.activeId})); }
+function prog(){ return state.programs.find(p=>p.id===state.activeId)||state.programs[0]; }
+function vid(id){ return prog().videos.find(v=>v.id===id); }
+function scol(s){ return {Scripted:'var(--text2)',Filmed:'var(--amber)',Edited:'var(--platform)',Posted:'var(--market)'}[s]||'var(--text2)'; }
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function go(page, btn){
+  state.currentPage=page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(btn) btn.classList.add('active');
+  else { const b=document.querySelector(`[data-page="${page}"]`); if(b) b.classList.add('active'); }
+  closeScript();
+  render(page);
+}
+
+function render(page){
+  const fn = {
+    dashboard:renderDash, calendar:renderCal, tracker:renderTracker,
+    programs:renderPrograms, hooks:renderHooks, ctas:renderCTAs,
+    features:renderFeatures, github:renderGitHub
+  };
+  if(fn[page]) fn[page]();
+}
+
+// ═══════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════
+function renderDash(){
+  const p=prog();
+  const total=p.videos.length;
+  const posted=p.videos.filter(v=>v.status==='Posted').length;
+  const filmed=p.videos.filter(v=>v.status==='Filmed').length;
+  const edited=p.videos.filter(v=>v.status==='Edited').length;
+  const scripted=p.videos.filter(v=>v.status==='Scripted').length;
+  const mkt=p.videos.filter(v=>v.type==='market').length;
+  const plt=p.videos.filter(v=>v.type==='platform').length;
+  const pct=Math.round((posted/total)*100);
+
+  document.getElementById('page-dashboard').innerHTML=`
+    <div class="ph"><div class="ph-title">UGC LATAM VIDEO MANAGER</div>
+    <div class="ph-sub">Active: ${p.title} · ${p.month} · Host: ${BRAND.host}, ${BRAND.title}</div></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-lbl">Total Videos</div><div class="stat-val">${total}</div><div class="stat-sub">${p.month}</div></div>
+      <div class="stat"><div class="stat-lbl">Posted</div><div class="stat-val" style="color:var(--market)">${posted}</div><div class="stat-sub">${pct}% complete</div></div>
+      <div class="stat"><div class="stat-lbl">In Progress</div><div class="stat-val" style="color:var(--amber)">${filmed+edited}</div><div class="stat-sub">Filmed (${filmed}) · Edited (${edited})</div></div>
+      <div class="stat"><div class="stat-lbl">To Script</div><div class="stat-val" style="color:var(--text2)">${scripted}</div><div class="stat-sub">${mkt} Market · ${plt} Platform</div></div>
+    </div>
+    <div class="two-col">
+      <div class="split-card">
+        <div class="sh">Program Progress</div>
+        <div class="prog-wrap" style="padding:0;border:none;background:transparent;">
+          <div class="prog-row"><span>Videos posted</span><span>${posted}/${total}</span></div>
+          <div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div>
+          <div class="prog-grid">
+            ${STATUSES.map(s=>{const c=p.videos.filter(v=>v.status===s).length;return`<div><div class="prog-num" style="color:${scol(s)}">${c}</div><div class="prog-lbl">${s}</div></div>`;}).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="split-card">
+        <div class="sh">Content Split</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:rgba(30,206,138,.08);border:1px solid rgba(30,206,138,.18);border-radius:var(--r);padding:14px;text-align:center;">
+            <div style="font-family:var(--fd);font-size:30px;color:var(--market)">${mkt}</div>
+            <div style="font-size:11px;color:var(--market);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Market</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">LATAM Insights</div>
+          </div>
+          <div style="background:rgba(157,125,255,.08);border:1px solid rgba(157,125,255,.18);border-radius:var(--r);padding:14px;text-align:center;">
+            <div style="font-family:var(--fd);font-size:30px;color:var(--platform)">${plt}</div>
+            <div style="font-size:11px;color:var(--platform);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Platform</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Feature Spotlights</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text3);text-align:center;padding:7px;background:var(--bg3);border-radius:var(--r)">${p.platforms.join(' · ')}</div>
+      </div>
+    </div>
+    <div class="sh">Quick Actions</div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn-primary" onclick="go('calendar',null)">⊞ Open Calendar</button>
+      <button class="btn-primary" style="background:transparent;border:1px solid var(--border2);color:var(--text2);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'" onclick="go('tracker',null)">◈ Status Board</button>
+      <button class="btn-primary" style="background:transparent;border:1px solid var(--border2);color:var(--text2);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'" onclick="exportAll()">↓ Export All Scripts</button>
+      <button class="btn-primary" style="background:transparent;border:1px solid var(--border2);color:var(--text2);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'" onclick="openModal('prog-modal')">+ New Program</button>
+    </div>`;
+}
+
+// ═══════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════
+function renderCal(){
+  const p=prog();
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let weeksHtml='';
+  for(let w=1;w<=4;w++){
+    const wvids=p.videos.filter(v=>v.week===w);
+    let cells='';
+    for(let d=0;d<7;d++){
+      const dn=days[d];
+      const dayNum=(w-1)*7+d+1;
+      const v=wvids.find(v=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(v.weekday)===d);
+      if(v){
+        const sel=state.openVideo===v.id?'sel':'';
+        cells+=`<div class="day vid ${v.type} ${sel}" id="cell-${v.id}" onclick="toggleScript('${v.id}')">
+          <div class="d-name">${dn}</div><div class="d-num">D${v.day}</div>
+          <span class="d-tag ${v.type}">${v.type==='market'?'Market':'Platform'}</span>
+          <div class="d-title">${v.title}</div>
+          <div class="d-time">${v.time}</div>
+          <div class="hint">tap for script</div>
+          <div class="d-dot ${v.status}" title="${v.status}"></div>
+        </div>`;
+      } else {
+        const lbl=dn==='Tue'?'Film day':(dn==='Sat'||dn==='Sun')?'Rest':dayNum>25?'Buffer':'Rest';
+        cells+=`<div class="day rest"><div class="d-name">${dn}</div><div class="d-num">D${dayNum}</div><div style="font-size:10px;color:var(--text3);margin-top:5px">${lbl}</div></div>`;
+      }
+    }
+    weeksHtml+=`<div class="cal-week ${w===state.activeWeek?'active':''}" id="cw-${w}">${cells}</div>`;
+  }
+  const wtabs=[1,2,3,4].map(w=>`<button class="wtab ${w===state.activeWeek?'active':''}" onclick="swWeek(${w},this)">Week ${w}</button>`).join('');
+  const legend=`<div style="display:flex;gap:14px;font-size:10px;color:var(--text3);font-family:var(--fm);margin-left:auto">
+    ${STATUSES.map(s=>`<span style="display:flex;align-items:center;gap:5px"><span class="d-dot ${s}" style="position:static;width:7px;height:7px;flex-shrink:0"></span>${s}</span>`).join('')}
+  </div>`;
+  document.getElementById('page-calendar').innerHTML=`
+    <div class="ph"><div class="ph-title">30-DAY CALENDAR</div>
+    <div class="ph-sub">${p.title} · Click any video card to read and edit the full script</div></div>
+    <div class="week-tabs" style="display:flex;align-items:center;gap:6px;margin-bottom:12px">${wtabs}${legend}</div>
+    <div class="day-headers">${days.map(d=>`<div class="day-hdr">${d}</div>`).join('')}</div>
+    ${weeksHtml}
+    <div class="spanel" id="spanel"><div id="spanel-inner"></div></div>`;
+}
+
+function swWeek(w,btn){
+  state.activeWeek=w;
+  document.querySelectorAll('.cal-week').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.wtab').forEach(b=>b.classList.remove('active'));
+  const we=document.getElementById('cw-'+w); if(we) we.classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+function toggleScript(id){
+  if(state.openVideo===id){ closeScript(); return; }
+  state.openVideo=id;
+  document.querySelectorAll('.day').forEach(c=>c.classList.remove('sel'));
+  const cell=document.getElementById('cell-'+id); if(cell) cell.classList.add('sel');
+  renderScriptPanel(id);
+  const sp=document.getElementById('spanel');
+  if(sp){ sp.classList.add('open'); setTimeout(()=>sp.scrollIntoView({behavior:'smooth',block:'nearest'}),60); }
+}
+
+function closeScript(){
+  state.openVideo=null;
+  document.querySelectorAll('.day').forEach(c=>c.classList.remove('sel'));
+  const sp=document.getElementById('spanel'); if(sp) sp.classList.remove('open');
+}
+
+function renderScriptPanel(id){
+  const v=vid(id); if(!v) return;
+  const opts=STATUSES.map(s=>`<option value="${s}" ${v.status===s?'selected':''}>${s}</option>`).join('');
+  const tags=v.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+  const broll=(v.broll||[]).map(b=>`<span class="tag">📹 ${b}</span>`).join('');
+  document.getElementById('spanel-inner').innerHTML=`
+    <div class="sp-head">
+      <div class="sp-head-l">
+        <span class="sp-badge ${v.type}">${v.type==='market'?'LATAM Market':'Platform Feature'}</span>
+        <div class="sp-title">${v.title}</div>
+        <div class="sp-meta"><span>Day ${v.day} · ${v.weekday} · Week ${v.week}</span><span>${v.dur}</span><span>${v.time}</span><span style="color:var(--text3)">${v.hookType}</span></div>
+      </div>
+      <div class="sp-head-r">
+        <select class="status-sel ${v.status}" id="ssel-${id}" onchange="updStatus('${id}',this.value)">${opts}</select>
+        <button class="btn-close" onclick="closeScript()">✕ close</button>
+      </div>
+    </div>
+    <div class="sp-body">
+      <div class="sblock hook"><div class="sblock-hdr"><span class="sblock-lbl">Hook</span><span class="sblock-sub">First 3–5 seconds · deliver on camera before B-roll</span></div>
+        <textarea id="hk-${id}" rows="3">${v.hook}</textarea></div>
+      <div class="sblock body"><div class="sblock-hdr"><span class="sblock-lbl">Body</span><span class="sblock-sub">Insight & value · seconds 5 to ~50</span></div>
+        <textarea id="bd-${id}" rows="5">${v.body}</textarea></div>
+      <div class="sblock cta"><div class="sblock-hdr"><span class="sblock-lbl">CTA</span><span class="sblock-sub">${v.ctaType} · final 5 seconds</span></div>
+        <textarea id="ct-${id}" rows="2">${v.cta}</textarea></div>
+      <div class="sblock prod"><div class="sblock-hdr"><span class="sblock-lbl">Production Notes</span><span class="sblock-sub">Chad's filming guide</span></div>
+        <div class="prod-txt">${v.prod}</div></div>
+      ${broll?`<div><div class="sh" style="margin-bottom:8px">B-Roll Checklist</div><div class="tags" style="padding:0">${broll}</div></div>`:''}
+      <div class="tags" style="padding:0">${tags}</div>
+    </div>
+    <div class="sp-foot">
+      <button class="btn-save" id="sbtn-${id}" onclick="saveScript('${id}')">Save Changes</button>
+      <button class="btn-exp" onclick="exportOne('${id}')">↓ Export Script</button>
+      <span class="save-hint" id="shint-${id}">Edits save to your browser</span>
+    </div>`;
+}
+
+function saveScript(id){
+  const v=vid(id); if(!v) return;
+  const hk=document.getElementById('hk-'+id);
+  const bd=document.getElementById('bd-'+id);
+  const ct=document.getElementById('ct-'+id);
+  if(hk) v.hook=hk.value;
+  if(bd) v.body=bd.value;
+  if(ct) v.cta=ct.value;
+  save();
+  const btn=document.getElementById('sbtn-'+id);
+  if(btn){btn.textContent='Saved ✓';btn.classList.add('ok');setTimeout(()=>{btn.textContent='Save Changes';btn.classList.remove('ok');},2000);}
+  const hint=document.getElementById('shint-'+id);
+  if(hint) hint.textContent='Saved ✓';
+  toast('Script saved','ok');
+}
+
+function updStatus(id,val){
+  const v=vid(id); if(!v) return;
+  v.status=val; save();
+  const dot=document.querySelector(`#cell-${id} .d-dot`);
+  if(dot){dot.className='d-dot '+val;dot.title=val;}
+  const sel=document.getElementById('ssel-'+id);
+  if(sel) sel.className='status-sel '+val;
+  renderDash(); renderTracker();
+  toast('Status → '+val,'ok');
+}
+
+// ═══════════════════════════════════════
+// TRACKER
+// ═══════════════════════════════════════
+function renderTracker(){
+  const p=prog();
+  const cols=STATUSES.map(s=>{
+    const vs=p.videos.filter(v=>v.status===s);
+    const cards=vs.map(v=>`
+      <div class="kcard" onclick="go('calendar',null);setTimeout(()=>{swWeek(${v.week},null);setTimeout(()=>toggleScript('${v.id}'),150);},150)">
+        <div class="kcard-week">Week ${v.week} · Day ${v.day}</div>
+        <div class="kcard-title">${v.title}</div>
+        <span class="kcard-tag ${v.type}">${v.type==='market'?'Market':'Platform'}</span>
+      </div>`).join('')||`<div class="empty-col">No videos here</div>`;
+    return`<div class="kcol">
+      <div class="kcol-hdr"><div class="kcol-dot ${s}"></div><div class="kcol-name" style="color:${scol(s)}">${s}</div><div class="kcol-count">${vs.length}</div></div>
+      <div class="kcol-body">${cards}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('page-tracker').innerHTML=`
+    <div class="ph"><div class="ph-title">STATUS TRACKER</div>
+    <div class="ph-sub">Click any card to open the script editor · Updates save automatically</div></div>
+    <div class="kanban">${cols}</div>`;
+}
+
+// ═══════════════════════════════════════
+// PROGRAMS
+// ═══════════════════════════════════════
+function renderPrograms(){
+  const cards=state.programs.map(p=>{
+    const posted=p.videos.filter(v=>v.status==='Posted').length;
+    const total=p.videos.length;
+    const pct=Math.round((posted/total)*100);
+    return`<div class="pcard ${p.id===state.activeId?'cur':''}" onclick="swProg('${p.id}')">
+      <div class="pcard-top"><div class="pmonth">${p.month.toUpperCase()}</div><span class="pstatus ${p.status}">${p.status}</span></div>
+      <div class="ptitle">${p.title}</div>
+      <div class="pdesc">${p.desc}</div>
+      <div class="pbar-lbl"><span>Posted</span><span>${posted}/${total}</span></div>
+      <div class="pbar-bg"><div class="pbar-fill" style="width:${pct}%"></div></div>
+      <div class="pmeta"><span>${p.videos.filter(v=>v.type==='market').length} Market</span><span>${p.videos.filter(v=>v.type==='platform').length} Platform</span><span>${p.startDate}</span></div>
+    </div>`;
+  }).join('');
+  document.getElementById('page-programs').innerHTML=`
+    <div class="ph"><div class="ph-title">PROGRAMS</div>
+    <div class="ph-sub">Each program is a 30-day content block. Switch between them or create new ones.</div></div>
+    <div class="pgrid">${cards}</div>
+    <button class="btn-add" onclick="openModal('prog-modal')">+ Create New 30-Day Program</button>`;
+  document.getElementById('nc-prog').textContent=state.programs.length;
+}
+
+function swProg(id){
+  state.activeId=id; state.openVideo=null; state.activeWeek=1; save();
+  renderPrograms(); renderDash();
+  toast('Program switched');
+}
+
+function createProgram(){
+  const t=document.getElementById('np-title').value.trim();
+  const m=document.getElementById('np-month').value.trim();
+  const d=document.getElementById('np-desc').value.trim();
+  if(!t||!m){toast('Fill in title and month');return;}
+  const newProg={
+    id:'prog_'+Date.now(), title:t, month:m, status:'draft',
+    desc:d||'New 30-day video content program.',
+    platforms:['TikTok','Instagram Reels','LinkedIn','YouTube Shorts','Substack'],
+    startDate:new Date().toISOString().split('T')[0],
+    videos:JSON.parse(JSON.stringify(prog().videos)).map(v=>({...v,status:'Scripted',id:v.id+'_'+Date.now()}))
+  };
+  state.programs.push(newProg);
+  state.activeId=newProg.id; save();
+  closeModal('prog-modal');
+  ['np-title','np-month','np-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderPrograms(); renderDash();
+  toast('New program created!','ok');
+}
+
+// ═══════════════════════════════════════
+// HOOKS
+// ═══════════════════════════════════════
+function renderHooks(){
+  const hooks=[
+    {type:'Stat Shock',hook:"\"LATAM's social commerce market will hit $100 billion by 2026. Most global brands are missing every dollar of it.\"",note:'Best for market videos targeting brand decision-makers. Cut to motion graphic of stat at 5sec.',use:'Videos: D2, D5, D9, D16'},
+    {type:'Problem First',hook:"\"You found a LATAM creator. They're perfect. Now tell me — how are you paying them? Because wire transfers just killed your campaign.\"",note:'Best for platform feature videos. Hold the pause. Let it land before continuing.',use:'Videos: D4, D11, D18'},
+    {type:'Contrarian Take',hook:"\"Stop running global influencer campaigns in LATAM. They don't work here — and here's exactly why.\"",note:'Drives saves and comments from agencies. Best for market education videos.',use:'Videos: D6, D19'},
+    {type:'Curiosity Gap',hook:"\"There's a country in LATAM where micro-influencers outperform macro ones by 3x. It's not where you think.\"",note:"Best for country spotlight videos. Don't reveal early — build to Colombia or Peru.",use:'Videos: D12'},
+    {type:"Chad's POV",hook:"\"I've spent 3 years watching brands burn money trying to break into LATAM. Here's the mistake I see every single time.\"",note:'Highest retention on LinkedIn. Personal story format builds authority fastest.',use:'Videos: D23'},
+    {type:'Platform Demo',hook:"\"I just matched a US beauty brand with 40 Colombian creators in under 4 minutes. Let me show you exactly how.\"",note:'Best for platform videos with dashboard screen recording. Leads with proof.',use:'Videos: D4, D18'},
+    {type:'Myth Bust',hook:"\"People say LATAM influencer ROI is hard to measure. That's only true if you're using the wrong platform.\"",note:'Creates strong engagement from skeptics. Best for analytics dashboard video.',use:'Videos: D20'},
+    {type:'Speed Claim',hook:"\"Most brands spend 6 weeks building a LATAM influencer campaign. We do it in 48 hours. I'll prove it.\"",note:'Best for the full platform walkthrough video (Day 25). Strong conversion hook.',use:'Videos: D8, D25'}
+  ];
+  document.getElementById('page-hooks').innerHTML=`
+    <div class="ph"><div class="ph-title">HOOKS LIBRARY</div>
+    <div class="ph-sub">Deliver the hook in the first 3–5 seconds, on camera, before any B-roll. Bold claim, sharp delivery.</div></div>
+    <div class="hgrid">${hooks.map(h=>`<div class="hcard"><div class="hcard-type">${h.type}</div><div class="hcard-hook">${h.hook}</div><div class="hcard-note">${h.note}</div><div class="hcard-use">${h.use}</div></div>`).join('')}</div>`;
+}
+
+// ═══════════════════════════════════════
+// CTAs
+// ═══════════════════════════════════════
+function renderCTAs(){
+  const ctas=[
+    {type:'Type A — Direct',badge:'p',script:"\"Book a live demo at ugclatam.io — I'll show you the platform personally.\"",for:'Platform feature videos',freq:'40%'},
+    {type:'Type B — DM',badge:'s',script:"\"DM me the word LATAM and I'll send you our market breakdown report — free.\"",for:'Market education videos',freq:'25%'},
+    {type:'Type C — Curiosity',badge:'s',script:"\"Link in bio. Watch the full platform demo — no email required.\"",for:'Top-of-funnel market videos',freq:'20%'},
+    {type:'Type D — Follow',badge:'s',script:"\"Follow for the next video — I'm breaking down every LATAM market this month.\"",for:'Series-style market videos',freq:'15%'}
+  ];
+  document.getElementById('page-ctas').innerHTML=`
+    <div class="ph"><div class="ph-title">CTA ROTATION</div>
+    <div class="ph-sub">Platform videos use Type A (direct). Market videos use Type B or C. Never end without a CTA.</div></div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:14px">
+      <table class="ctbl">
+        <thead><tr><th>Type</th><th>CTA Script</th><th>Best For</th><th>Freq.</th></tr></thead>
+        <tbody>${ctas.map(c=>`<tr><td><span class="cbadge ${c.badge}">${c.type}</span></td><td><div class="cscript">${c.script}</div></td><td style="font-size:12px;color:var(--text2)">${c.for}</td><td><span style="font-family:var(--fm);font-size:12px;color:var(--accent)">${c.freq}</span></td></tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="info"><strong>LinkedIn tip:</strong> LinkedIn suppresses posts with external links in captions. Deliver the CTA verbally and put the ugclatam.io link only in the first comment — never in the caption itself.</div>`;
+}
+
+// ═══════════════════════════════════════
+// FEATURES
+// ═══════════════════════════════════════
+function renderFeatures(){
+  const fs=[
+    {n:1,name:'Brand ↔ Creator Marketplace & Matching',desc:'The entry point. Show how brands post a brief and AI surfaces vetted LATAM creators instantly. This is the "aha" moment — make it visual with a live dashboard screen recording.',wk:'Week 1 · D4'},
+    {n:2,name:'AI-Powered Campaign Tools & Matching Logic',desc:"Go deeper on the AI. Show how the algorithm matches on audience demographics, engagement rate, content style, and brand safety score — not just follower count.",wk:'Week 1 · D6'},
+    {n:3,name:'Cross-Border Payments & Contracts',desc:'The #1 operational pain point. Show local currency payouts, contracts in Spanish/Portuguese, and tax compliance — all automated inside the platform.',wk:'Week 2 · D11'},
+    {n:4,name:'Creator Gifting & Cross-Border Seeding Fulfillment',desc:'Unique differentiator. Show how brands ship product to 50+ creators across 18+ countries through a single dashboard — no local 3PL needed, no customs headaches.',wk:'Week 2 · D13'},
+    {n:5,name:'Campaign Analytics Dashboard',desc:'Close the ROI loop. Screen-record live analytics: reach, engagement, earned media value, and conversion tracking by creator. This is what closes deals with CMOs.',wk:'Week 3 · D18'},
+    {n:6,name:'AI Brand Safety & Compliance Tools',desc:'For enterprise brands. Show how the AI screens creator content history, flags brand risks, and provides compliance reports before a single piece of content goes live.',wk:'Week 3 · D20'},
+    {n:7,name:'Full End-to-End Platform Walkthrough',desc:'The closer. A 60-second screen-recorded walkthrough: brief → match → contract → gifting → launch → analytics. The complete brand journey in one video. Hard CTA: book a demo.',wk:'Week 4 · D25'}
+  ];
+  document.getElementById('page-features').innerHTML=`
+    <div class="ph"><div class="ph-title">FEATURE SEQUENCE</div>
+    <div class="ph-sub">Features introduced in logical order — each builds on the previous, mirroring how a brand onboards.</div></div>
+    <div class="flist">${fs.map(f=>`<div class="frow"><div class="fnum">${f.n}</div><div><div class="fname">${f.name}</div><div class="fdesc">${f.desc}</div></div><span class="fwk">${f.wk}</span></div>`).join('')}</div>`;
+}
+
+// ═══════════════════════════════════════
+// GITHUB SETUP
+// ═══════════════════════════════════════
+function renderGitHub(){
+  document.getElementById('page-github').innerHTML=`
+    <div class="ph"><div class="ph-title">GITHUB PAGES SETUP</div>
+    <div class="ph-sub">Upload this single index.html file to GitHub and enable Pages — your tool is live in minutes.</div></div>
+    <div class="card" style="max-width:640px">
+      <div class="ghsteps">
+        <div class="ghstep"><div class="ghnum">1</div><div><div class="ghtitle">Save this page as index.html</div><div class="ghdesc">In your browser: File → Save Page As → name it <strong>index.html</strong> → save it to your computer. That's your entire app in one file.</div></div></div>
+        <div class="ghstep"><div class="ghnum">2</div><div><div class="ghtitle">Go to your GitHub repo</div><div class="ghdesc">Open github.com, go to your <strong>ugclatam-video-manager</strong> repository.</div></div></div>
+        <div class="ghstep"><div class="ghnum">3</div><div><div class="ghtitle">Upload the file</div><div class="ghdesc">Click <strong>Add file → Upload files</strong>. Drag and drop your index.html file onto the upload area. Add commit message "Add Video Manager" and click <strong>Commit changes</strong>.</div></div></div>
+        <div class="ghstep"><div class="ghnum">4</div><div><div class="ghtitle">Enable GitHub Pages</div><div class="ghdesc">Go to <strong>Settings → Pages → Source: Deploy from branch → Branch: main → / (root) → Save</strong>.</div></div></div>
+        <div class="ghstep"><div class="ghnum">5</div><div><div class="ghtitle">You're live!</div><div class="ghdesc">Wait 60 seconds. Your app will be at:</div>
+          <div class="ghcode">https://VMAgency.github.io/ugclatam-video-manager</div>
+        </div></div>
+        <div class="ghstep"><div class="ghnum">6</div><div><div class="ghtitle">Updating in future</div><div class="ghdesc">To update scripts or add programs — just upload a new version of index.html. GitHub deploys it in 60 seconds automatically.</div></div></div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════
+function scriptTxt(v,p){
+  return `VIDEO ${v.id.toUpperCase()} — DAY ${v.day}\n${v.title}\n${'─'.repeat(52)}\nType:      ${v.type==='market'?'LATAM Market':'Platform Feature'}\nDay:       Day ${v.day} · ${v.weekday} · Week ${v.week}\nDuration:  ${v.dur}\nPost Time: ${v.time}\nStatus:    ${v.status}\nCTA Type:  ${v.ctaType}\n\nHOOK (0–5 seconds):\n${v.hook}\n\nBODY (5–50 seconds):\n${v.body}\n\nCTA (final 5 seconds):\n${v.cta}\n\nPRODUCTION NOTES:\n${v.prod}\n\nB-ROLL CHECKLIST:\n${(v.broll||[]).map(b=>'  • '+b).join('\n')}\n\nTAGS: ${v.tags.join(', ')}\n`;
+}
+
+function showExport(title,content,fname){
+  document.getElementById('exp-title').textContent=title;
+  document.getElementById('exp-pre').textContent=content;
+  document.getElementById('btn-copy').onclick=()=>{navigator.clipboard.writeText(content).then(()=>toast('Copied!','ok'));};
+  document.getElementById('btn-dl').onclick=()=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'}));
+    a.download=fname+'.txt'; a.click(); toast('Downloaded','ok');
+  };
+  openModal('exp-modal');
+}
+
+function exportOne(id){
+  const v=vid(id); const p=prog(); if(!v) return;
+  const hk=document.getElementById('hk-'+id); if(hk) v.hook=hk.value;
+  const bd=document.getElementById('bd-'+id); if(bd) v.body=bd.value;
+  const ct=document.getElementById('ct-'+id); if(ct) v.cta=ct.value;
+  showExport('Script: Day '+v.day, scriptTxt(v,p), 'ugclatam_script_day'+v.day);
+}
+
+function exportAll(){
+  const p=prog();
+  let txt=`UGC LATAM VIDEO MANAGER — SCRIPT EXPORT\nProgram: ${p.title} | ${p.month}\nHost: ${BRAND.host}, ${BRAND.title}\nExported: ${new Date().toLocaleDateString()}\n${'═'.repeat(54)}\n\n`;
+  txt+=p.videos.map(v=>scriptTxt(v,p)).join('\n\n');
+  showExport('All Scripts — '+p.month, txt, 'ugclatam_all_scripts');
+}
+
+// ═══════════════════════════════════════
+// MODALS & TOAST
+// ═══════════════════════════════════════
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+let toastTimer;
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+(type==='ok'?'ok':'');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); });
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('open')); closeScript(); }
+});
+
+// ═══════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════
+loadState();
+render('dashboard');
 </script>
-
 </body>
 </html>
